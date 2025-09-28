@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Table Builder</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .builder-section, .code-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 25px;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 15px;
+            border: 1px solid #dee2e6;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .control-group label {
+            font-weight: 500;
+            color: #495057;
+            font-size: 0.9rem;
+        }
+
+        input[type="number"], input[type="text"], select {
+            padding: 10px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        input[type="number"]:focus, input[type="text"]:focus, select:focus {
+            outline: none;
+            border-color: #4ecdc4;
+            box-shadow: 0 0 0 3px rgba(78, 205, 196, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4ecdc4, #44a08d);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.05);
+            border: 2px solid #f8f9fa;
+            overflow-x: auto;
+        }
+
+        #previewTable {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            background: white;
+        }
+
+        #previewTable th, #previewTable td {
+            padding: 12px 16px;
+            text-align: left;
+            border: 1px solid #dee2e6;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        #previewTable th {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        #previewTable td {
+            background: white;
+        }
+
+        #previewTable td:hover {
+            background: #f8f9fa;
+        }
+
+        #previewTable td[contenteditable="true"] {
+            cursor: text;
+            border: 2px solid transparent;
+        }
+
+        #previewTable td[contenteditable="true"]:focus {
+            outline: none;
+            border-color: #4ecdc4;
+            background: #fff;
+            box-shadow: inset 0 0 0 2px rgba(78, 205, 196, 0.1);
+        }
+
+        .code-container {
+            background: #2d3748;
+            border-radius: 15px;
+            padding: 25px;
+            color: #e2e8f0;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            overflow-x: auto;
+            max-height: 500px;
+            overflow-y: auto;
+            border: 2px solid #4a5568;
+            position: relative;
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #4a5568;
+        }
+
+        .copy-btn {
+            background: #4ecdc4;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .copy-btn:hover {
+            background: #44a08d;
+            transform: translateY(-1px);
+        }
+
+        .syntax-html { color: #81c784; }
+        .syntax-tag { color: #f06292; }
+        .syntax-attr { color: #64b5f6; }
+        .syntax-string { color: #ffb74d; }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✨ Interactive Table Builder</h1>
+            <p>Create beautiful, customizable HTML tables with real-time preview and code generation</p>
+        </div>
+
+        <div class="main-content">
+            <div class="builder-section">
+                <h2 class="section-title">🎨 Table Builder</h2>
+                
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="rows">Rows</label>
+                        <input type="number" id="rows" min="1" max="20" value="3">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label for="cols">Columns</label>
+                        <input type="number" id="cols" min="1" max="10" value="3">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label for="tableClass">CSS Class</label>
+                        <input type="text" id="tableClass" placeholder="custom-table" value="custom-table">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label for="headerStyle">Header Gradient</label>
+                        <select id="headerStyle">
+                            <option value="red">Red Gradient</option>
+                            <option value="blue">Blue Gradient</option>
+                            <option value="green">Green Gradient</option>
+                            <option value="purple">Purple Gradient</option>
+                            <option value="orange">Orange Gradient</option>
+                        </select>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label for="borderStyle">Border Style</label>
+                        <select id="borderStyle">
+                            <option value="all">All Borders</option>
+                            <option value="outer">Outer Border Only</option>
+                            <option value="horizontal">Horizontal Only</option>
+                            <option value="none">No Borders</option>
+                        </select>
+                    </div>
+                    
+                    <button class="btn btn-primary" onclick="generateTable()">Generate Table</button>
+                    <button class="btn btn-secondary" onclick="clearTable()">Clear</button>
+                    <button class="btn btn-success" onclick="addSampleData()">Add Sample Data</button>
+                    <button class="btn" onclick="addLinkToSelectedText()" style="background: linear-gradient(135deg, #ff6b6b, #ee5a24); color: white;">Add Link</button>
+                </div>
+
+                <div class="table-container">
+                    <table id="previewTable">
+                        <thead>
+                            <tr>
+                                <th>Header 1</th>
+                                <th>Header 2</th>
+                                <th>Header 3</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td contenteditable="true">Click to edit</td>
+                                <td contenteditable="true">Click to edit</td>
+                                <td contenteditable="true">Click to edit</td>
+                            </tr>
+                            <tr>
+                                <td contenteditable="true">Click to edit</td>
+                                <td contenteditable="true">Click to edit</td>
+                                <td contenteditable="true">Click to edit</td>
+                            </tr>
+                            <tr>
+                                <td contenteditable="true">Click to edit</td>
+                                <td contenteditable="true">Click to edit</td>
+                                <td contenteditable="true">Click to edit</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="code-section">
+                <h2 class="section-title">💻 Generated Code</h2>
+                
+                <div class="code-container">
+                    <div class="code-header">
+                        <span>HTML Code</span>
+                        <button class="copy-btn" onclick="copyCode()">📋 Copy Code</button>
+                    </div>
+                    <pre id="codeOutput"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTable = null;
+
+        function generateTable() {
+            const rows = parseInt(document.getElementById('rows').value);
+            const cols = parseInt(document.getElementById('cols').value);
+            const tableClass = document.getElementById('tableClass').value || 'custom-table';
+            const headerStyle = document.getElementById('headerStyle').value;
+            const borderStyle = document.getElementById('borderStyle').value;
+            
+            const table = document.getElementById('previewTable');
+            
+            // Clear existing table
+            table.innerHTML = '';
+            table.className = tableClass;
+            
+            // Create header
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            
+            for (let i = 1; i <= cols; i++) {
+                const th = document.createElement('th');
+                th.textContent = `Header ${i}`;
+                th.contentEditable = true;
+                headerRow.appendChild(th);
+            }
+            
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+            
+            // Create body
+            const tbody = document.createElement('tbody');
+            
+            for (let i = 1; i <= rows; i++) {
+                const row = document.createElement('tr');
+                
+                for (let j = 1; j <= cols; j++) {
+                    const td = document.createElement('td');
+                    td.textContent = `Row ${i}, Col ${j}`;
+                    td.contentEditable = true;
+                    td.addEventListener('input', updateCode);
+                    row.appendChild(td);
+                }
+                
+                tbody.appendChild(row);
+            }
+            
+            table.appendChild(tbody);
+            
+            // Apply header style
+            applyHeaderStyle(headerStyle);
+            
+            // Apply border style
+            applyBorderStyle(borderStyle);
+            
+            // Add event listeners to headers
+            const headers = table.querySelectorAll('th');
+            headers.forEach(header => {
+                header.addEventListener('input', updateCode);
+            });
+            
+            updateCode();
+            
+            // Add animation
+            table.classList.add('animate-fade-in');
+        }
+
+        function applyBorderStyle(style) {
+            const table = document.getElementById('previewTable');
+            const cells = table.querySelectorAll('th, td');
+            
+            // Reset borders first
+            cells.forEach(cell => {
+                cell.style.border = '';
+            });
+            
+            switch(style) {
+                case 'all':
+                    cells.forEach(cell => {
+                        cell.style.border = '1px solid #dee2e6';
+                    });
+                    break;
+                case 'outer':
+                    table.style.border = '2px solid #dee2e6';
+                    break;
+                case 'horizontal':
+                    cells.forEach(cell => {
+                        cell.style.borderTop = '1px solid #dee2e6';
+                        cell.style.borderBottom = '1px solid #dee2e6';
+                    });
+                    break;
+                case 'none':
+                    table.style.border = 'none';
+                    cells.forEach(cell => {
+                        cell.style.border = 'none';
+                    });
+                    break;
+            }
+        }
+
+        function addLinkToSelectedText() {
+            const selection = window.getSelection();
+            const selectedText = selection.toString().trim();
+            
+            if (!selectedText) {
+                alert('Please select some text first to add a link.');
+                return;
+            }
+            
+            const url = prompt('Enter the URL for the link:', 'https://');
+            if (!url || url === 'https://') {
+                return;
+            }
+            
+            // Check if the selection is within a table cell
+            const range = selection.getRangeAt(0);
+            const container = range.commonAncestorContainer;
+            const parentElement = container.nodeType === Node.TEXT_NODE ? container.parentElement : container;
+            
+            if (parentElement.closest('#previewTable')) {
+                // Create a link element
+                const link = document.createElement('a');
+                link.href = url;
+                link.textContent = selectedText;
+                link.style.color = '#007bff';
+                link.style.textDecoration = 'underline';
+                link.target = '_blank';
+                
+                // Replace the selected text with the link
+                range.deleteContents();
+                range.insertNode(link);
+                
+                // Clear selection
+                selection.removeAllRanges();
+                
+                // Update the code
+                updateCode();
+            } else {
+                alert('Please select text within the table to add a link.');
+            }
+        }
+
+        function applyHeaderStyle(style) {
+            const headers = document.querySelectorAll('#previewTable th');
+            
+            headers.forEach(header => {
+                switch(style) {
+                    case 'red':
+                        header.style.background = 'linear-gradient(135deg, #ff6b6b, #ee5a24)';
+                        header.style.color = 'white';
+                        break;
+                    case 'blue':
+                        header.style.background = 'linear-gradient(135deg, #667eea, #764ba2)';
+                        header.style.color = 'white';
+                        break;
+                    case 'green':
+                        header.style.background = 'linear-gradient(135deg, #56ab2f, #a8e6cf)';
+                        header.style.color = 'white';
+                        break;
+                    case 'purple':
+                        header.style.background = 'linear-gradient(135deg, #a8edea, #fed6e3)';
+                        header.style.color = '#333';
+                        break;
+                    case 'orange':
+                        header.style.background = 'linear-gradient(135deg, #f093fb, #f5576c)';
+                        header.style.color = 'white';
+                        break;
+                    default:
+                        header.style.background = 'linear-gradient(135deg, #ff6b6b, #ee5a24)';
+                        header.style.color = 'white';
+                }
+            });
+        }
+
+        function clearTable() {
+            const table = document.getElementById('previewTable');
+            table.innerHTML = '<thead><tr><th>Header 1</th></tr></thead><tbody><tr><td contenteditable="true">Click to edit</td></tr></tbody>';
+            updateCode();
+        }
+
+        function addSampleData() {
+            const sampleData = [
+                ['Name', 'Age', 'City'],
+                ['John Doe', '25', 'New York'],
+                ['Jane Smith', '30', 'Los Angeles'],
+                ['Mike Johnson', '35', 'Chicago']
+            ];
+            
+            document.getElementById('rows').value = 3;
+            document.getElementById('cols').value = 3;
+            
+            generateTable();
+            
+            setTimeout(() => {
+                const headers = document.querySelectorAll('#previewTable th');
+                const cells = document.querySelectorAll('#previewTable td');
+                
+                // Update headers
+                headers.forEach((header, index) => {
+                    if (sampleData[0][index]) {
+                        header.textContent = sampleData[0][index];
+                    }
+                });
+                
+                // Update cells
+                let cellIndex = 0;
+                for (let i = 1; i < sampleData.length; i++) {
+                    for (let j = 0; j < sampleData[i].length; j++) {
+                        if (cells[cellIndex]) {
+                            cells[cellIndex].textContent = sampleData[i][j];
+                            cellIndex++;
+                        }
+                    }
+                }
+                
+                updateCode();
+            }, 100);
+        }
+
+        function updateCode() {
+            const table = document.getElementById('previewTable');
+            const codeOutput = document.getElementById('codeOutput');
+            const tableClass = document.getElementById('tableClass').value || 'custom-table';
+            
+            // Generate complete HTML with CSS
+            let completeHTML = generateCompleteHTML(table, tableClass);
+            
+            // Store the raw HTML for copying
+            window.rawHTML = completeHTML;
+            
+            // Apply syntax highlighting for display only
+            codeOutput.innerHTML = syntaxHighlight(completeHTML);
+        }
+
+        function generateCompleteHTML(table, tableClass) {
+            // Create a clean copy of the table without contenteditable and inline styles
+            const tableClone = table.cloneNode(true);
+            
+            // Remove contenteditable attributes but preserve links and borders
+            const allElements = tableClone.querySelectorAll('*');
+            allElements.forEach(element => {
+                element.removeAttribute('contenteditable');
+                // Don't remove styles from links and border styles
+                if (element.tagName !== 'A' && !element.style.border) {
+                    const keepStyles = ['border', 'border-top', 'border-bottom', 'border-left', 'border-right'];
+                    const currentStyle = element.getAttribute('style');
+                    if (currentStyle && !keepStyles.some(style => currentStyle.includes(style))) {
+                        element.removeAttribute('style');
+                    }
+                }
+            });
+            
+            // Set the correct class
+            tableClone.className = tableClass;
+            
+            // Get current settings
+            const headerStyle = document.getElementById('headerStyle').value || 'red';
+            const borderStyle = document.getElementById('borderStyle').value || 'all';
+            
+            const cleanTableHTML = tableClone.outerHTML;
+            
+            // Generate gradient CSS based on header style
+            let gradientCSS = '';
+            switch(headerStyle) {
+                case 'red':
+                    gradientCSS = 'background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);';
+                    break;
+                case 'blue':
+                    gradientCSS = 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);';
+                    break;
+                case 'green':
+                    gradientCSS = 'background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);';
+                    break;
+                case 'purple':
+                    gradientCSS = 'background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);';
+                    break;
+                case 'orange':
+                    gradientCSS = 'background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);';
+                    break;
+                default:
+                    gradientCSS = 'background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);';
+            }
+            
+            // Generate border CSS based on border style
+            let borderCSS = '';
+            switch(borderStyle) {
+                case 'all':
+                    borderCSS = `
+.${tableClass} th,
+.${tableClass} td {
+    border: 1px solid #dee2e6;
+}`;
+                    break;
+                case 'outer':
+                    borderCSS = `
+.${tableClass} {
+    border: 2px solid #dee2e6;
+}`;
+                    break;
+                case 'horizontal':
+                    borderCSS = `
+.${tableClass} th,
+.${tableClass} td {
+    border-top: 1px solid #dee2e6;
+    border-bottom: 1px solid #dee2e6;
+}`;
+                    break;
+                case 'none':
+                    borderCSS = `
+.${tableClass} th,
+.${tableClass} td {
+    border: none;
+}`;
+                    break;
+            }
+            
+            return `<style>
+/* Table Styling */
+.${tableClass} {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    background: white;
+    margin: 20px 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.${tableClass} th,
+.${tableClass} td {
+    padding: 16px 20px;
+    text-align: left;
+    border-bottom: 1px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.${tableClass} th {
+    ${gradientCSS}
+    color: white;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-size: 0.9rem;
+    position: relative;
+}
+
+.${tableClass} th:first-child {
+    border-top-left-radius: 12px;
+}
+
+.${tableClass} th:last-child {
+    border-top-right-radius: 12px;
+}
+
+.${tableClass} tbody tr {
+    transition: all 0.3s ease;
+}
+
+.${tableClass} tbody tr:hover {
+    background-color: #f8f9fa;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.${tableClass} tbody tr:nth-child(even) {
+    background-color: #fdfdfd;
+}
+
+.${tableClass} tbody tr:nth-child(odd) {
+    background-color: white;
+}
+
+.${tableClass} td {
+    color: #495057;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.${tableClass} tbody tr:last-child td:first-child {
+    border-bottom-left-radius: 12px;
+}
+
+.${tableClass} tbody tr:last-child td:last-child {
+    border-bottom-right-radius: 12px;
+}
+
+.${tableClass} tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Link Styling */
+.${tableClass} a {
+    color: #007bff;
+    text-decoration: underline;
+    transition: color 0.3s ease;
+}
+
+.${tableClass} a:hover {
+    color: #0056b3;
+    text-decoration: none;
+}
+
+${borderCSS}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .${tableClass} {
+        font-size: 0.8rem;
+        border-radius: 8px;
+    }
+
+    .${tableClass} th,
+    .${tableClass} td {
+        padding: 12px 16px;
+    }
+
+    .${tableClass} th {
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .${tableClass} {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+        border-radius: 8px;
+    }
+
+    .${tableClass} th,
+    .${tableClass} td {
+        padding: 10px 12px;
+        min-width: 120px;
+    }
+}
+</style>
+
+${formatHTML(cleanTableHTML)}`;
+        }
+
+        function formatHTML(html) {
+            let formatted = html;
+            let indentLevel = 0;
+            let result = '';
+            
+            // Split by tags while preserving them
+            const parts = formatted.split(/(<[^>]*>)/);
+            
+            for (let i = 0; i < parts.length; i++) {
+                const part = parts[i].trim();
+                if (!part) continue;
+                
+                if (part.startsWith('</')) {
+                    // Closing tag - decrease indent first
+                    indentLevel = Math.max(0, indentLevel - 1);
+                    result += '    '.repeat(indentLevel) + part + '\n';
+                } else if (part.startsWith('<') && !part.endsWith('/>')) {
+                    // Opening tag
+                    result += '    '.repeat(indentLevel) + part + '\n';
+                    if (!part.includes('</')) {
+                        indentLevel++;
+                    }
+                } else if (part.startsWith('<') && part.endsWith('/>')) {
+                    // Self-closing tag
+                    result += '    '.repeat(indentLevel) + part + '\n';
+                } else {
+                    // Text content
+                    result += '    '.repeat(indentLevel) + part + '\n';
+                }
+            }
+            
+            return result.trim();
+        }
+
+        function syntaxHighlight(code) {
+            // Escape HTML entities first
+            let highlighted = code
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+            
+            // Apply syntax highlighting with proper regex
+            highlighted = highlighted
+                // Highlight opening and closing tags
+                .replace(/(&lt;\/?)([a-zA-Z][a-zA-Z0-9-]*)([^&]*?)(&gt;)/g, function(match, openBracket, tagName, attributes, closeBracket) {
+                    let result = '<span class="syntax-tag">' + openBracket + tagName + '</span>';
+                    if (attributes.trim()) {
+                        // Highlight attributes
+                        result += attributes.replace(/([a-zA-Z-]+)(=)(&quot;[^&]*?&quot;)/g, 
+                            '<span class="syntax-attr">$1</span>$2<span class="syntax-string">$3</span>');
+                    }
+                    result += '<span class="syntax-tag">' + closeBracket + '</span>';
+                    return result;
+                })
+                // Fix quotes that got double-escaped
+                .replace(/&amp;quot;/g, '&quot;');
+                
+            return highlighted;
+        }
+
+        function copyCode() {
+            // Use the raw HTML stored in window.rawHTML instead of the highlighted version
+            const text = window.rawHTML || document.getElementById('codeOutput').textContent;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                const originalText = btn.textContent;
+                btn.textContent = '✅ Copied!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
+            }).catch(() => {
+                // Fallback for older browsers
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                
+                const btn = document.querySelector('.copy-btn');
+                const originalText = btn.textContent;
+                btn.textContent = '✅ Copied!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
+            });
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCode();
+            
+            // Add event listeners to existing editable elements
+            document.querySelectorAll('[contenteditable="true"]').forEach(element => {
+                element.addEventListener('input', updateCode);
+            });
+
+            // Add input listeners to controls
+            ['rows', 'cols', 'tableClass', 'headerStyle', 'borderStyle'].forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('input', () => {
+                        if (['tableClass', 'headerStyle', 'borderStyle'].includes(id)) {
+                            const table = document.getElementById('previewTable');
+                            if (table.querySelector('tbody')) {
+                                generateTable();
+                            }
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
